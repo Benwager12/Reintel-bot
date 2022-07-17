@@ -2,11 +2,11 @@ import time
 from datetime import datetime
 
 import disnake
-from disnake import Member
+from disnake import Member, Embed
 from disnake.ext import commands
 from disnake.ext.commands import Context
 
-from helpers import checks, database, queries
+from helpers import checks, queries
 
 number_conversion = {
     0: "zero",
@@ -25,7 +25,14 @@ number_conversion = {
 def number_emoji(number): return "".join(f":{number_conversion[int(str(number)[i])]}:" for i in range(len(str(number))))
 
 
-def todo_embed(items: list, author: Member, description: str = None, crossed: int = None) -> disnake.Embed:
+def convert_unix(unix_timestamp: int): return f"<t:{unix_timestamp}:T>, <t:{unix_timestamp}:d>"
+
+
+def convert_unix_now(): return convert_unix(int(datetime.utcnow().timestamp() + 3600))
+
+
+def todo_embed(items: list, author: Member, description: str = None, crossed: int = None) -> \
+        tuple[str, None] | tuple[None, Embed]:
     """
     Returns an embed with all of the todo items for a user.
     :param items: The todo items to include in the embed.
@@ -34,6 +41,10 @@ def todo_embed(items: list, author: Member, description: str = None, crossed: in
     :param crossed: Which todo items will be crossed out.
     :return: The embed with the todo items.
     """
+
+    if len(items) == 0:
+        return "You have no todos!", None
+
     embed = disnake.Embed()
     embed.set_author(name=f"{author.display_name}'s Todos", icon_url=author.avatar.url)
     embed.description = description
@@ -41,10 +52,26 @@ def todo_embed(items: list, author: Member, description: str = None, crossed: in
     for x, todo in enumerate(items):
         formatting = number_emoji(x + 1) + ". "
         formatting += f"~~{todo[0]}~~" if crossed is True or crossed == x + 1 else todo[0]
-        formatting += f" (<t:{todo[1]}:T>, <t:{todo[1]}:d>)"
+        formatting += f" ({convert_unix(todo[1])})"
 
         embed.add_field(name="** **", value=formatting, inline=False)
-    return embed
+
+    return None, embed
+
+
+def todo_embed_from_user(author: Member, server_id: int, description: str = None, crossed: int = None) -> \
+        tuple[str, None] | tuple[None, Embed]:
+    """
+        Returns an embed with all of the todo items for a user.
+        :param author: The author of the todo items.
+        :param server_id: The id of the server to get the todo items from.
+        :param description: The description of the embed.
+        :param crossed: Which todo items will be crossed out.
+        :return: The embed with the todo items.
+        """
+    items = queries.todo_items(author.id, server_id)
+
+    return todo_embed(items, author, description, crossed)
 
 
 class Todo(commands.Cog, name="todo-normal"):
@@ -62,21 +89,9 @@ class Todo(commands.Cog, name="todo-normal"):
         Lists all of your todos
         :param ctx: The context for the command
         """
-        cursor = database.connection.cursor()
-        query = f"SELECT MESSAGE, TIME_ADDED FROM USER_TODO WHERE USER_ID = '{ctx.author.id}' AND " \
-                f"SERVER_ID = '{ctx.guild.id}' ORDER BY TIME_ADDED"
-        cursor.execute(query)
-        returned = cursor.fetchall()
+        message, embed = todo_embed_from_user(ctx.author, ctx.guild.id)
 
-        if len(returned) == 0:
-            await ctx.reply("You have no todos!")
-            return
-
-        embed = todo_embed(returned, ctx.author)
-
-        cursor.close()
-
-        await ctx.reply(embed=embed)
+        await ctx.reply(message, embed=embed)
 
     @commands.command(
         name="add",
@@ -94,20 +109,20 @@ class Todo(commands.Cog, name="todo-normal"):
         msg = " ".join(args)
         if len(args) == 0:
             provide = await ctx.send("Please provide a message to add to your todo list!")
-            provide.delete(delay=5)
+            await provide.delete(delay=5)
             return
 
         msg = msg.replace("\"", "\\\"").replace("\'", "\\\'").replace("`", "\\`")
 
-        cursor = database.connection.cursor()
-        query = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s)"
-        print(query)
-        cursor.execute(query, (ctx.author.id, ctx.guild.id, msg, datetime.utcnow().timestamp()))
-        database.connection.commit()
-        cursor.close()
+        _, embed = todo_embed([(f"{':boom: ' * 5}", int(datetime.utcnow().timestamp()) + 3600)], ctx.author)
 
-        added = await ctx.reply(f"Added `{msg}` to your todo list.")
-        await added.delete(delay=5)
+        added = await ctx.reply(f"Added to your todo list. :ok_hand:", embed=embed)
+        queries.add_item(ctx.author.id, ctx.guild.id, msg)
+
+        time.sleep(1)
+
+        _, embed = todo_embed_from_user(ctx.author, ctx.guild.id)
+        await added.edit(embed=embed)
 
     @commands.command(
         name="clear",
@@ -120,25 +135,15 @@ class Todo(commands.Cog, name="todo-normal"):
         Adds a todo to the list
         :param ctx: The context for the command
         """
-
-        cursor = database.connection.cursor()
-        list_query = f"SELECT MESSAGE, TIME_ADDED FROM USER_TODO WHERE USER_ID = '{ctx.author.id}' AND " \
-                     f"SERVER_ID = '{ctx.guild.id}' ORDER BY TIME_ADDED"
-
-        delete_query = f"DELETE FROM USER_TODO WHERE USER_ID = '{ctx.author.id}' AND SERVER_ID = '{ctx.guild.id}'"
-
-        cursor.execute(list_query)
-        items = cursor.fetchall()
+        items = queries.todo_items(ctx.author.id, ctx.guild.id)
         item_number = len(items)
 
         if item_number == 0:
             return
 
-        cursor.execute(delete_query)
-        database.connection.commit()
-        cursor.close()
+        queries.clear_items(ctx.author.id, ctx.guild.id)
 
-        embed = todo_embed(items, ctx.author, description="Clearing your todolist...", crossed=True)
+        _, embed = todo_embed(items, ctx.author, description="Clearing your todolist...", crossed=True)
 
         delete = await ctx.reply(embed=embed)
 
@@ -170,16 +175,18 @@ class Todo(commands.Cog, name="todo-normal"):
 
         queries.remove_item(ctx.author.id, ctx.guild.id, items[number - 1])
 
-        embed = todo_embed(items, ctx.author, crossed=number, )
-        embed.colour = 0xffbf00
+        _, embed = todo_embed(items, ctx.author, crossed=number)
+
         removed = await ctx.reply(f"Ticked off todo item #{number}! :tada:", embed=embed)
 
         time.sleep(2)
         new_items = items.copy()
         new_items.pop(number - 1)
 
-        embed = todo_embed(new_items, ctx.author)
-        embed.colour = 0xffde00
+        _, embed = todo_embed(new_items, ctx.author)
+
+        print(type(embed))
+
         await removed.edit(embed=embed)
 
     @commands.command(
@@ -192,14 +199,10 @@ class Todo(commands.Cog, name="todo-normal"):
         if member is None:
             member = ctx.author
 
-        query = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s)"
-        cursor = database.connection.cursor()
         for i in range(10):
-            cursor.execute(query, (member.id, ctx.guild.id, i + 1, datetime.utcnow().timestamp()))
-        database.connection.commit()
-        cursor.close()
+            queries.add_item(member.id, ctx.guild.id, str(i + 1))
 
-        test = await ctx.reply("Done")
+        test = await ctx.reply("Added 10 items")
         await test.delete(delay=3)
 
     @commands.command(

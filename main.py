@@ -30,7 +30,9 @@ async def on_ready():
     print("\nRegistering commands:")
     load_commands()
     print("-" * 20)
-    await bot.change_presence(activity=disnake.Game(name='with lists.'))
+    
+    presence = "with lists." if config.is_prod else "with code."
+    await bot.change_presence(activity=disnake.Game(name=presence))
 
 
 @tasks.loop(seconds=5)

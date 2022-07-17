@@ -1,8 +1,8 @@
 from helpers import database
-from disnake import Message
+from datetime import datetime
 
 
-def todo_items(user_id: str, server_id: str) -> list:
+def todo_items(user_id: int, server_id: int) -> list:
     """
     Returns a list of todo items for a user on a server.
     :param user_id: The user id to get the todo items for.
@@ -18,7 +18,7 @@ def todo_items(user_id: str, server_id: str) -> list:
     return items
 
 
-def clear_items(user_id: str, server_id: str) -> None:
+def clear_items(user_id: int, server_id: int) -> None:
     """
     Clears all todo items for a user on a server.
     :param user_id: The user id to clear the todo items for.
@@ -31,7 +31,7 @@ def clear_items(user_id: str, server_id: str) -> None:
     cursor.close()
 
 
-def remove_item(user_id: str, server_id: str, content: (str, int)):
+def remove_item(user_id: int, server_id: int, content: (str, int)) -> None:
     """
     Removes a todo item for a user on a server.
     :param user_id: The user id to remove the todo item for.
@@ -44,5 +44,21 @@ def remove_item(user_id: str, server_id: str, content: (str, int)):
     destroy = f"DELETE FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}'" \
               f" AND TIME_ADDED = '{content[1]}' AND MESSAGE = '{content[0]}'"
     cursor.execute(destroy)
+    database.connection.commit()
+    cursor.close()
+
+
+def add_item(user_id: int, server_id: int, message: str) -> None:
+    """
+    Adds a todo item for a user on a server.
+    :param user_id: The user id to remove the todo item for.
+    :param server_id: The server id to remove the todo item for.
+    :param message: The content of the todo item to add.
+    """
+
+    cursor = database.connection.cursor()
+
+    destroy = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s)"
+    cursor.execute(destroy, (user_id, server_id, message, datetime.utcnow().timestamp() + 3600))
     database.connection.commit()
     cursor.close()
