@@ -114,7 +114,10 @@ class Todo(commands.Cog, name="todo-normal"):
 
         msg = msg.replace("\"", "\\\"").replace("\'", "\\\'").replace("`", "\\`")
 
-        _, embed = todo_embed([(f"{':boom: ' * 5}", int(datetime.utcnow().timestamp()) + 3600)], ctx.author)
+        todos = queries.todo_items(ctx.author.id, ctx.guild.id)
+        todos.append((f"{':boom: ' * 5}", int(datetime.utcnow().timestamp()) + 3600))
+
+        _, embed = todo_embed(todos, ctx.author)
 
         added = await ctx.reply(f"Added to your todo list. :ok_hand:", embed=embed)
         queries.add_item(ctx.author.id, ctx.guild.id, msg)

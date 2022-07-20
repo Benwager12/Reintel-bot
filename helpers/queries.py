@@ -1,5 +1,15 @@
-from helpers import database
+from helpers import database, config
 from datetime import datetime
+from psycopg2 import connect as dbconnect
+
+
+def check_db_connection() -> None:
+    """
+    Opens a connection to the database if the URL has been changed.
+    """
+    if database.DATABASE_URL != database.DB_URL:
+        database.DB_URL = database.DATABASE_URL
+        database.connection = dbconnect(database.DATABASE_URL, sslmode="require")
 
 
 def todo_items(user_id: int, server_id: int) -> list:
@@ -9,6 +19,8 @@ def todo_items(user_id: int, server_id: int) -> list:
     :param server_id: The server id to get the todo items for.
     :return: A list of todo items.
     """
+    check_db_connection()
+
     cursor = database.connection.cursor()
     query = f"SELECT MESSAGE, TIME_ADDED FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}' "\
             f"ORDER BY TIME_ADDED"
@@ -24,6 +36,8 @@ def clear_items(user_id: int, server_id: int) -> None:
     :param user_id: The user id to clear the todo items for.
     :param server_id: The server id to clear the todo items for.
     """
+    check_db_connection()
+
     cursor = database.connection.cursor()
     query = f"DELETE FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}'"
     cursor.execute(query)
@@ -38,6 +52,7 @@ def remove_item(user_id: int, server_id: int, content: (str, int)) -> None:
     :param server_id: The server id to remove the todo item for.
     :param content: The content of the todo item to remove.
     """
+    check_db_connection()
 
     cursor = database.connection.cursor()
 
@@ -55,6 +70,7 @@ def add_item(user_id: int, server_id: int, message: str) -> None:
     :param server_id: The server id to remove the todo item for.
     :param message: The content of the todo item to add.
     """
+    check_db_connection()
 
     cursor = database.connection.cursor()
 

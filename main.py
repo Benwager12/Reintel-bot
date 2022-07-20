@@ -36,9 +36,8 @@ async def on_ready():
 
 
 @tasks.loop(seconds=5)
-async def check_todos():
-    print('Checking todos...')
-    await bot.change_presence(activity=disnake.Game(name='with lists.'))
+async def check_timers():
+    print('Checking timers...')
 
 
 def load_commands() -> None:
