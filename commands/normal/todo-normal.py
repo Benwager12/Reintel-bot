@@ -169,6 +169,11 @@ class Todo(commands.Cog, name="todo-normal"):
             await error.delete(delay=5)
             return
 
+        if number < 1:
+            error = await ctx.reply("Please provide a number greater than or equal to 1!")
+            await error.delete(delay=5)
+            return
+
         items = queries.todo_items(ctx.author.id, ctx.guild.id)
 
         if len(items) < number:
@@ -188,8 +193,6 @@ class Todo(commands.Cog, name="todo-normal"):
 
         _, embed = todo_embed(new_items, ctx.author)
 
-        print(type(embed))
-
         await removed.edit(embed=embed)
 
     @commands.command(
@@ -202,8 +205,7 @@ class Todo(commands.Cog, name="todo-normal"):
         if member is None:
             member = ctx.author
 
-        for i in range(10):
-            queries.add_item(member.id, ctx.guild.id, str(i + 1))
+        queries.add_items(member.id, ctx.guild.id, [str(i + 1) for i in range(10)])
 
         test = await ctx.reply("Added 10 items")
         await test.delete(delay=3)
