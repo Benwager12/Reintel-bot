@@ -54,28 +54,24 @@ def remove_item(user_id: int, server_id: int, content: (str, int)) -> None:
     :param content: The content of the todo item to remove.
     """
     check_db_connection()
-
-    cursor = database.connection.cursor()
-
-    destroy = f"DELETE FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}'" \
-              f" AND TIME_ADDED = '{content[1]}' AND MESSAGE = '{content[0]}'"
-    cursor.execute(destroy)
-    database.connection.commit()
-    cursor.close()
+    add_items(user_id, server_id, [content])
 
 
-def add_item(user_id: int, server_id: int, message: str) -> None:
+def add_items(user_id: int, server_id: int, messages: list[str]) -> None:
     """
     Adds a todo item for a user on a server.
     :param user_id: The user id to remove the todo item for.
     :param server_id: The server id to remove the todo item for.
-    :param message: The content of the todo item to add.
+    :param messages: The messages to add to the todo list.
     """
     check_db_connection()
 
     cursor = database.connection.cursor()
 
-    destroy = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s)"
-    cursor.execute(destroy, (user_id, server_id, message, int(time.time())))
+    add = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s)"
+
+    for message in messages:
+        cursor.execute(add, (user_id, server_id, message, int(time.time())))
     database.connection.commit()
     cursor.close()
+
