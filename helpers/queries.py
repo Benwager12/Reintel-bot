@@ -1,5 +1,6 @@
+import time
+
 from helpers import database, config
-from datetime import datetime
 from psycopg2 import connect as dbconnect
 
 
@@ -75,6 +76,6 @@ def add_item(user_id: int, server_id: int, message: str) -> None:
     cursor = database.connection.cursor()
 
     destroy = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s)"
-    cursor.execute(destroy, (user_id, server_id, message, datetime.utcnow().timestamp() + 3600))
+    cursor.execute(destroy, (user_id, server_id, message, int(time.time())))
     database.connection.commit()
     cursor.close()

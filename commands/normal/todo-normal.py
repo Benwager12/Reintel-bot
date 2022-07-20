@@ -115,7 +115,7 @@ class Todo(commands.Cog, name="todo-normal"):
         msg = msg.replace("\"", "\\\"").replace("\'", "\\\'").replace("`", "\\`")
 
         todos = queries.todo_items(ctx.author.id, ctx.guild.id)
-        todos.append((f"{':boom: ' * 5}", int(datetime.utcnow().timestamp()) + 3600))
+        todos.append((f"{':boom: ' * 5}", int(time.time())))
 
         _, embed = todo_embed(todos, ctx.author)
 
