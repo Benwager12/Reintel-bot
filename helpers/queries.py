@@ -1,5 +1,7 @@
 import time
 
+import psycopg2.errors
+
 from helpers import database, config
 from psycopg2 import connect as dbconnect
 
@@ -8,8 +10,10 @@ def check_db_connection() -> None:
     """
     Opens a connection to the database if the URL has been changed.
     """
-    if database.DATABASE_URL != database.DB_URL:
+    if database.DATABASE_URL != config.config['DATABASE_URL']:
         database.DB_URL = database.DATABASE_URL
+        print("Database URL changed: " + database.DATABASE_URL)
+        print("Reconnecting to database...")
         database.connection = dbconnect(database.DATABASE_URL, sslmode="require")
 
 
@@ -23,9 +27,14 @@ def todo_items(user_id: int, server_id: int) -> list:
     check_db_connection()
 
     cursor = database.connection.cursor()
-    query = f"SELECT MESSAGE, TIME_ADDED FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}' "\
+    query = f"SELECT MESSAGE, TIME_ADDED FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}' " \
             f"ORDER BY TIME_ADDED"
-    cursor.execute(query)
+
+    try:
+        cursor.execute(query)
+    except psycopg2.errors.InFailedSqlTransaction:
+        print(f"Failed to execute query:\n{query}")
+        return []
     items = cursor.fetchall()
     cursor.close()
     return items
@@ -41,7 +50,11 @@ def clear_items(user_id: int, server_id: int) -> None:
 
     cursor = database.connection.cursor()
     query = f"DELETE FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}'"
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+    except psycopg2.errors.InFailedSqlTransaction:
+        print(f"Failed to execute query:\n{query}")
+        return []
     database.connection.commit()
     cursor.close()
 
@@ -57,9 +70,12 @@ def remove_item(user_id: int, server_id: int, content: (str, int)) -> None:
 
     cursor = database.connection.cursor()
 
-    destroy = f"DELETE FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}'" \
-              f" AND TIME_ADDED = '{content[1]}' AND MESSAGE = '{content[0]}'"
-    cursor.execute(destroy)
+    query = f"DELETE FROM USER_TODO WHERE USER_ID = '{user_id}' AND SERVER_ID = '{server_id}'" \
+            f" AND TIME_ADDED = '{content[1]}' AND MESSAGE = '{content[0]}'"
+    try:
+        cursor.execute(query)
+    except psycopg2.errors.InFailedSqlTransaction:
+        print(f"Failed to execute query:\n{query}")
     database.connection.commit()
     cursor.close()
 
@@ -85,10 +101,20 @@ def add_items(user_id: int, server_id: int, messages: list[str]) -> None:
 
     cursor = database.connection.cursor()
 
-    add = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s)"
+    add = f"INSERT INTO USER_TODO (USER_ID, SERVER_ID, MESSAGE, TIME_ADDED) VALUES (%s, %s, %s, %s);"
+    multiple_query = add * len(messages)
+    multiple_tuple = []
 
     for message in messages:
-        cursor.execute(add, (user_id, server_id, message, int(time.time())))
+        multiple_tuple.append(user_id)
+        multiple_tuple.append(server_id)
+        multiple_tuple.append(message)
+        multiple_tuple.append(int(time.time()))
+
+    try:
+        cursor.execute(multiple_query, tuple(multiple_tuple))
+    except psycopg2.errors.InFailedSqlTransaction:
+        print(f"Failed to execute query:\n{add}")
+
     database.connection.commit()
     cursor.close()
-

@@ -18,7 +18,12 @@ import exceptions
 intents = disnake.Intents.default()
 intents.message_content = True
 
-bot = Bot(command_prefix=commands.when_mentioned_or(config.config["PREFIX"]), intents=intents, config=config.config)
+bot = Bot(
+    command_prefix=commands.when_mentioned_or(config.config["PREFIX"]),
+    intents=intents,
+    config=config.config,
+    help_command=None
+)
 
 
 @bot.event

@@ -1,102 +1,51 @@
 import time
-from datetime import datetime
 
 import disnake
 from disnake import Member, Embed
 from disnake.ext import commands
 from disnake.ext.commands import Context
 
-from helpers import checks, queries
-
-number_conversion = {
-    0: "zero",
-    1: "one",
-    2: "two",
-    3: "three",
-    4: "four",
-    5: "five",
-    6: "six",
-    7: "seven",
-    8: "eight",
-    9: "nine"
-}
+from helpers import checks, queries, embeds
 
 
-def number_emoji(number): return "".join(f":{number_conversion[int(str(number)[i])]}:" for i in range(len(str(number))))
-
-
-def convert_unix(unix_timestamp: int): return f"<t:{unix_timestamp}:T>, <t:{unix_timestamp}:d>"
-
-
-def convert_unix_now(): return convert_unix(int(datetime.utcnow().timestamp() + 3600))
-
-
-def todo_embed(items: list, author: Member, description: str = None, crossed: int = None) -> \
-        tuple[str, None] | tuple[None, Embed]:
-    """
-    Returns an embed with all of the todo items for a user.
-    :param items: The todo items to include in the embed.
-    :param author: The author of the todo items.
-    :param description: The description of the embed.
-    :param crossed: Which todo items will be crossed out.
-    :return: The embed with the todo items.
-    """
-
-    if len(items) == 0:
-        return "You have no todos!", None
-
-    embed = disnake.Embed()
-    embed.set_author(name=f"{author.display_name}'s Todos", icon_url=author.avatar.url)
-    embed.description = description
-
-    for x, todo in enumerate(items):
-        formatting = number_emoji(x + 1) + ". "
-        formatting += f"~~{todo[0]}~~" if crossed is True or crossed == x + 1 else todo[0]
-        formatting += f" ({convert_unix(todo[1])})"
-
-        embed.add_field(name="** **", value=formatting, inline=False)
-
-    return None, embed
-
-
-def todo_embed_from_user(author: Member, server_id: int, description: str = None, crossed: int = None) -> \
-        tuple[str, None] | tuple[None, Embed]:
-    """
-        Returns an embed with all of the todo items for a user.
-        :param author: The author of the todo items.
-        :param server_id: The id of the server to get the todo items from.
-        :param description: The description of the embed.
-        :param crossed: Which todo items will be crossed out.
-        :return: The embed with the todo items.
-        """
-    items = queries.todo_items(author.id, server_id)
-
-    return todo_embed(items, author, description, crossed)
-
-
-class Todo(commands.Cog, name="todo-normal"):
-    def __init__(self, bot):
+class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This is where my commands are stored about "
+                                                         "using the todo list."):
+    def __init__(self, bot: disnake.ext.commands.bot.Bot):
         self.bot = bot
 
     @commands.command(
         name="list",
         description="Lists all of your todos",
-        aliases=["todos", "todo"]
+        aliases=["todos", "todo"],
+        usage="list"
     )
     @checks.not_blacklisted()
-    async def list(self, ctx: Context) -> None:
+    async def list(self, ctx: Context, user: Member = None) -> None:
         """"
         Lists all of your todos
         :param ctx: The context for the command
+        :param user: The user to list the todos for.
         """
-        message, embed = todo_embed_from_user(ctx.author, ctx.guild.id)
+
+        if user is None:
+            user = ctx.author
+
+        if user is not ctx.author and ctx.author.id != checks.owner_id:
+            await ctx.send("You can't list someone else's todos!")
+            return
+
+        message, embed = embeds.todo_embed_from_user(user, ctx.guild.id)
+
+        if ctx.author.id != user.id and embed is None:
+            message = f"`{user.display_name}` has no todos!"
 
         await ctx.reply(message, embed=embed)
 
     @commands.command(
         name="add",
         description="Adds to your list of todos",
-        aliases=["addtodo"]
+        aliases=["addtodo"],
+        usage="add <todo>"
     )
     @checks.not_blacklisted()
     async def add(self, ctx: Context, *args) -> None:
@@ -117,23 +66,24 @@ class Todo(commands.Cog, name="todo-normal"):
         todos = queries.todo_items(ctx.author.id, ctx.guild.id)
         todos.append((f"{':boom: ' * 5}", int(time.time())))
 
-        _, embed = todo_embed(todos, ctx.author)
+        _, embed = embeds.todo_embed(todos, ctx.author)
 
         added = await ctx.reply(f"Added to your todo list. :ok_hand:", embed=embed)
         queries.add_item(ctx.author.id, ctx.guild.id, msg)
 
         time.sleep(1)
 
-        _, embed = todo_embed_from_user(ctx.author, ctx.guild.id)
+        _, embed = embeds.todo_embed_from_user(ctx.author, ctx.guild.id)
         await added.edit(embed=embed)
 
     @commands.command(
         name="clear",
         description="Adds to your list of todos",
-        aliases=["cleartodo"]
+        aliases=["cleartodo"],
+        usage="clear [instant]"
     )
     @checks.not_blacklisted()
-    async def clear(self, ctx: Context) -> None:
+    async def clear(self, ctx: Context, *args) -> None:
         """"
         Adds a todo to the list
         :param ctx: The context for the command
@@ -146,7 +96,11 @@ class Todo(commands.Cog, name="todo-normal"):
 
         queries.clear_items(ctx.author.id, ctx.guild.id)
 
-        _, embed = todo_embed(items, ctx.author, description="Clearing your todolist...", crossed=True)
+        if "instant" in args:
+            await ctx.reply(f"Cleared your todo list. :ok_hand:")
+            return
+
+        _, embed = embeds.todo_embed(items, ctx.author, description="Clearing your todolist...", crossed=True)
 
         delete = await ctx.reply(embed=embed)
 
@@ -162,7 +116,6 @@ class Todo(commands.Cog, name="todo-normal"):
         description="Currently tested item",
         aliases=["deletetodo", "tick"]
     )
-    @checks.is_owner()
     async def remove(self, ctx: Context, number: int = None) -> None:
         if number is None:
             error = await ctx.reply("Please provide a number to tick off!")
@@ -183,7 +136,7 @@ class Todo(commands.Cog, name="todo-normal"):
 
         queries.remove_item(ctx.author.id, ctx.guild.id, items[number - 1])
 
-        _, embed = todo_embed(items, ctx.author, crossed=number)
+        _, embed = embeds.todo_embed(items, ctx.author, crossed=number)
 
         removed = await ctx.reply(f"Ticked off todo item #{number}! :tada:", embed=embed)
 
@@ -191,7 +144,7 @@ class Todo(commands.Cog, name="todo-normal"):
         new_items = items.copy()
         new_items.pop(number - 1)
 
-        _, embed = todo_embed(new_items, ctx.author)
+        _, embed = embeds.todo_embed(new_items, ctx.author)
 
         await removed.edit(embed=embed)
 

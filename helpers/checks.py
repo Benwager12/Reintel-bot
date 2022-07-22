@@ -7,6 +7,8 @@ from exceptions import *
 
 T = TypeVar("T")
 
+owner_id = 104244519838416896
+
 
 def is_owner() -> Callable[[T], T]:
     """
@@ -14,7 +16,7 @@ def is_owner() -> Callable[[T], T]:
     """
 
     async def predicate(context: commands.Context) -> bool:
-        if context.author.id != 104244519838416896:
+        if context.author.id != owner_id:
             raise UserNotOwner
         return True
 
