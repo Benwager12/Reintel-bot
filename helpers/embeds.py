@@ -24,9 +24,9 @@ def todo_embed(items: list, author: Member, description: str = None, crossed: in
     embed.description = description
 
     for x, todo in enumerate(items):
-        formatting = conversion.number_emoji(x + 1) + ". "
+        formatting = utilities.number_emoji(x + 1) + ". "
         formatting += f"~~{todo[0]}~~" if crossed is True or crossed == x + 1 else todo[0]
-        formatting += f" ({conversion.convert_unix(todo[1])})"
+        formatting += f" ({utilities.convert_unix(todo[1])})"
 
         embed.add_field(name="** **", value=formatting, inline=False)
 
@@ -36,13 +36,13 @@ def todo_embed(items: list, author: Member, description: str = None, crossed: in
 def todo_embed_from_user(author: Member, server_id: int, description: str = None, crossed: int = None) -> \
         tuple[str, None] | tuple[None, Embed]:
     """
-        Returns an embed with all of the todo items for a user.
-        :param author: The author of the todo items.
-        :param server_id: The id of the server to get the todo items from.
-        :param description: The description of the embed.
-        :param crossed: Which todo items will be crossed out.
-        :return: The embed with the todo items.
-        """
+    Returns an embed with all of the todo items for a user.
+    :param author: The author of the todo items.
+    :param server_id: The id of the server to get the todo items from.
+    :param description: The description of the embed.
+    :param crossed: Which todo items will be crossed out.
+    :return: The embed with the todo items.
+    """
     items = queries.todo_items(author.id, server_id)
 
     return todo_embed(items, author, description, crossed)
@@ -66,7 +66,7 @@ def bot_information_embed() -> disnake.Embed:
 def help_embed_categories(cogs) -> disnake.Embed:
     categories = utilities.categories_description(cogs)
 
-    description = f"**Usage: **`help [category|command] <category name | command name>`\n\n"
+    description = "**Usage: **`help [category|command] <category name | command name>`\n\n"
     description += "\n\n".join(f"{cat.title()}: {categories[cat]}" for cat in categories)
 
     embed = disnake.Embed(
@@ -77,5 +77,32 @@ def help_embed_categories(cogs) -> disnake.Embed:
     return embed
 
 
-def help_embed_category(bot: Bot, category: str) -> disnake.Embed:
-    pass
+def help_embed_category(cogs, category: str) -> disnake.Embed:
+    if category is None:
+        embed = disnake.Embed(
+            color=disnake.Color.red(),
+            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
+                        "Please specify a category."
+        )
+        embed.set_author(name="Help Category: Error")
+        return embed
+
+    if f"{category}-normal" not in cogs:
+        embed = disnake.Embed(
+            color=disnake.Color.red(),
+            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
+                        f"The category `{category}` does not exist."
+        )
+        embed.set_author(name="Help Category: Error")
+        return embed
+
+    commands = utilities.command_info(cogs)[f"{category}-normal"]
+    description = "\n\n".join(utilities.command_info_str(command, commands[command]) for command in commands)
+
+    embed = disnake.Embed(
+        color=disnake.Color.green(),
+        description=description
+    )
+    embed.set_author(name=f"Help Category: {category.title()}")
+
+    return embed

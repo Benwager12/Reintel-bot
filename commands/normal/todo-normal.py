@@ -114,6 +114,7 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
     @commands.command(
         name="remove",
         description="Currently tested item",
+        usage="remove <item number>",
         aliases=["deletetodo", "tick"]
     )
     async def remove(self, ctx: Context, number: int = None) -> None:
@@ -151,6 +152,7 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
     @commands.command(
         name="add_items",
         description="Add 10 items to the todo list",
+        usage="add_items",
         aliases=["add_todos", "additems", "addtodos"]
     )
     @checks.is_owner()
@@ -163,22 +165,7 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
         test = await ctx.reply("Added 10 items")
         await test.delete(delay=3)
 
-    @commands.command(
-        name="test",
-        description="Currently tested item"
-    )
-    @checks.is_owner()
-    async def test(self, ctx: Context, *args) -> None:
-        colour = 0
-        embed = disnake.Embed(title="Test", description="Test", colour=colour)
-        reply = await ctx.reply(embed=embed)
 
-        for i in range(16):
-            time.sleep(.2)
-            colour += 16 * 16 * 16
-            embed.colour = colour
-            await reply.edit(embed=embed)
-            print(colour)
 
 
 def setup(bot):
