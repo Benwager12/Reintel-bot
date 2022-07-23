@@ -32,7 +32,7 @@ class Utilities(commands.Cog, name="utilities-normal", description=":star: This 
     @commands.command(
         name="help",
         description="Get help about a command!",
-        aliases=["commands", "rtfm"],
+        aliases=["commands"],
         usage="help [category|command] <category name | command name>"
     )
     async def help(self, ctx: Context, option_view: str = None, item_view: str = None) -> None:
@@ -43,6 +43,9 @@ class Utilities(commands.Cog, name="utilities-normal", description=":star: This 
         if option_view.lower() == "category":
             await ctx.send(embed=embeds.help_embed_category(self.bot.cogs, item_view))
             return
+
+        if option_view.lower() == "command":
+            await ctx.send(embed=embeds.help_embed_command(self.bot.cogs, item_view))
 
 
 def setup(bot):

@@ -87,7 +87,7 @@ def help_embed_category(cogs, category: str) -> disnake.Embed:
         embed.set_author(name="Help Category: Error")
         return embed
 
-    if f"{category}-normal" not in cogs:
+    if f"{category.lower()}-normal" not in cogs:
         embed = disnake.Embed(
             color=disnake.Color.red(),
             description="**Usage: **`help [category|command] <category name | command name>`\n\n"
@@ -96,7 +96,7 @@ def help_embed_category(cogs, category: str) -> disnake.Embed:
         embed.set_author(name="Help Category: Error")
         return embed
 
-    commands = utilities.command_info(cogs)[f"{category}-normal"]
+    commands = utilities.command_info(cogs)[f"{category.lower()}-normal"]
     description = "\n\n".join(utilities.command_info_str(command, commands[command]) for command in commands)
 
     embed = disnake.Embed(
@@ -105,4 +105,35 @@ def help_embed_category(cogs, category: str) -> disnake.Embed:
     )
     embed.set_author(name=f"Help Category: {category.title()}")
 
+    return embed
+
+
+def help_embed_command(cogs, command: str) -> disnake.Embed:
+    if command is None:
+        embed = disnake.Embed(
+            color=disnake.Color.red(),
+            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
+                        "Please specify a command."
+        )
+        embed.set_author(name="Help Command: Error")
+        return embed
+
+    category = utilities.find_command_category(command.lower(), cogs)
+
+    if category is None:
+        embed = disnake.Embed(
+            color=disnake.Color.red(),
+            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
+                        f"The command `{command}` does not exist."
+        )
+        embed.set_author(name="Help Command: Error")
+        return embed
+
+    info = utilities.command_info_str(command.lower(), utilities.command_info(cogs)[f"{category}"][command.lower()])
+
+    embed = disnake.Embed(
+        color=disnake.Color.green(),
+        description=info
+    )
+    embed.set_author(name=f"Help Command: {command.title()}")
     return embed

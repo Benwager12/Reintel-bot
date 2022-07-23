@@ -1,4 +1,5 @@
 import time
+from typing import Any
 
 number_conversion = {
     0: "zero",
@@ -71,8 +72,17 @@ def command_info(cogs) -> dict:
 def command_info_str(command_name: str, cmd_info: dict) -> str:
     info = f"**Command: **{command_name}"
     info += f"\n**Description: **{cmd_info['description']}"
-    info += f"\n**Usage: **{cmd_info['usage']}"
+    info += f"\n**Usage: **`{cmd_info['usage']}`"
     if len(cmd_info['aliases']) > 0:
         info += f"\n**Aliases: **{', '.join(cmd_info['aliases'])}"
 
     return info
+
+
+def find_command_category(command_name: str, cogs) -> str | None:
+    for cat in [x for x in list(cogs.keys()) if x.endswith("-normal")]:
+        category_commands = [cmd.name for cmd in cogs[cat].walk_commands()]
+
+        if command_name in category_commands:
+            return cat
+    return None
