@@ -46,6 +46,18 @@ class Utilities(commands.Cog, name="utilities-normal", description=":star: This 
 
         if option_view.lower() == "command":
             await ctx.send(embed=embeds.help_embed_command(self.bot.cogs, item_view))
+            return
+
+        embed = disnake.Embed(
+            color=disnake.Color.red(),
+            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
+                        f"PLease select a valid option: `category` or `command`."
+        )
+        embed.set_author(name="Help: Error")
+
+        await ctx.send(embed=embed)
+
+
 
 
 def setup(bot):
