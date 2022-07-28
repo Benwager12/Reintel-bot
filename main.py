@@ -8,10 +8,9 @@ import disnake
 from disnake.ext.commands import Bot
 from disnake import ApplicationCommandInteraction
 from disnake.ext import tasks, commands
-from helpers import database
+from helpers import utilities
 from helpers import config
 
-import json
 import os
 import exceptions
 
@@ -34,6 +33,9 @@ async def on_ready():
 
     print("\nRegistering commands:")
     load_commands()
+
+    print("\nLoaded cache")
+    utilities.load_cache(bot.cogs)
     print("-" * 20)
     
     presence = "with lists." if config.is_prod else "with code."

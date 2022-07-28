@@ -1,7 +1,6 @@
 import time
 
 import disnake
-from disnake import Member, Embed
 from disnake.ext import commands
 from disnake.ext.commands import Context
 
@@ -20,7 +19,7 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
         usage="list"
     )
     @checks.not_blacklisted()
-    async def list(self, ctx: Context, user: Member = None) -> None:
+    async def list(self, ctx: Context, user: disnake.Member = None) -> None:
         """"
         Lists all of your todos
         :param ctx: The context for the command
@@ -119,19 +118,22 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
     )
     async def remove(self, ctx: Context, number: int = None) -> None:
         if number is None:
-            error = await ctx.reply("Please provide a number to tick off!")
+            error = await ctx.reply(embed=embeds.error_embed("Provide number",
+                                                             "Please provide a number to remove a todo!"))
             await error.delete(delay=5)
             return
 
         if number < 1:
-            error = await ctx.reply("Please provide a number greater than or equal to 1!")
+            error = await ctx.reply(embed=embeds.error_embed("Invalid number",
+                                                             "Please provide a number greater than 0!"))
             await error.delete(delay=5)
             return
 
         items = queries.todo_items(ctx.author.id, ctx.guild.id)
 
         if len(items) < number:
-            error = await ctx.reply("You don't have that many todos!")
+            error = await ctx.reply(embed=embeds.error_embed("Invalid number",
+                                                             "You don't have that many todos!"))
             await error.delete(delay=5)
             return
 
@@ -156,7 +158,7 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
         aliases=["add_todos", "additems", "addtodos"]
     )
     @checks.is_owner()
-    async def add_items(self, ctx: Context, member: Member = None) -> None:
+    async def add_items(self, ctx: Context, member: disnake.Member = None) -> None:
         if member is None:
             member = ctx.author
 
@@ -164,8 +166,6 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
 
         test = await ctx.reply("Added 10 items")
         await test.delete(delay=3)
-
-
 
 
 def setup(bot):

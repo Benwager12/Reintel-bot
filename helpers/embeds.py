@@ -1,9 +1,28 @@
 import disnake
 from disnake import Member, Embed
-from disnake.ext.commands.bot import Bot
 
 from helpers import utilities, queries, config
-from commands.normal import *
+
+
+def error_embed(title: str, message: str) -> disnake.Embed:
+    """
+    Returns an embed with an error message.
+    :param title: The title of the embed.
+    :param message: The error message.
+    :return: The error message embed.
+    """
+    embed = disnake.Embed(
+        color=disnake.Color.red(),
+        description=message
+    )
+    embed.set_author(name=f"Error: {title}")
+
+    return embed
+
+
+def command_error_embed(command: str, title: str, message: str) -> disnake.Embed:
+    return error_embed(title, f"**Usage: **`{utilities.command_usage_message(command)}`\n\n{message}")
+
 
 def todo_embed(items: list, author: Member, description: str = None, crossed: int = None) -> \
         tuple[str, None] | tuple[None, Embed]:
@@ -63,10 +82,10 @@ def bot_information_embed() -> disnake.Embed:
     return embed
 
 
-def help_embed_categories(cogs) -> disnake.Embed:
-    categories = utilities.categories_description(cogs)
+def help_embed_categories() -> disnake.Embed:
+    categories = utilities.categories_description()
 
-    description = "**Usage: **`help [category|command] <category name | command name>`\n\n"
+    description = utilities.command_usage_message('help') + "\n\n"
     description += "\n\n".join(f"{cat.title()}: {categories[cat]}" for cat in categories)
 
     embed = disnake.Embed(
@@ -77,27 +96,15 @@ def help_embed_categories(cogs) -> disnake.Embed:
     return embed
 
 
-def help_embed_category(cogs, category: str) -> disnake.Embed:
+def help_embed_category(category: str) -> disnake.Embed:
     if category is None:
-        embed = disnake.Embed(
-            color=disnake.Color.red(),
-            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
-                        "Please specify a category."
-        )
-        embed.set_author(name="Help Category: Error")
-        return embed
+        return command_error_embed('help', "Error: Invalid Usage", "Please specify a category.")
 
-    if f"{category.lower()}-normal" not in cogs:
-        embed = disnake.Embed(
-            color=disnake.Color.red(),
-            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
-                        f"The category `{category}` does not exist."
-        )
-        embed.set_author(name="Help Category: Error")
-        return embed
+    if f"{category.lower()}-normal" not in utilities.command_categories():
+        return command_error_embed('help', "Error: Invalid Usage", f"The category `{category}` does not exist.")
 
-    commands = utilities.command_info(cogs)[f"{category.lower()}-normal"]
-    description = "\n\n".join(utilities.command_info_str(command, commands[command]) for command in commands)
+    commands = utilities.command_info()[f"{category.lower()}-normal"]
+    description = "\n\n".join(utilities.command_info_str(command) for command in commands)
 
     embed = disnake.Embed(
         color=disnake.Color.green(),
@@ -108,28 +115,15 @@ def help_embed_category(cogs, category: str) -> disnake.Embed:
     return embed
 
 
-def help_embed_command(cogs, command: str) -> disnake.Embed:
+def help_embed_command(command: str) -> disnake.Embed:
     if command is None:
-        embed = disnake.Embed(
-            color=disnake.Color.red(),
-            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
-                        "Please specify a command."
-        )
-        embed.set_author(name="Help Command: Error")
-        return embed
+        return command_error_embed('help', "Error: Invalid Usage", "Please specify a command.")
 
-    category = utilities.find_command_category(command.lower(), cogs)
+    category = utilities.find_command_category(command.lower())
 
     if category is None:
-        embed = disnake.Embed(
-            color=disnake.Color.red(),
-            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
-                        f"The command `{command}` does not exist."
-        )
-        embed.set_author(name="Help Command: Error")
-        return embed
-
-    info = utilities.command_info_str(command.lower(), utilities.command_info(cogs)[f"{category}"][command.lower()])
+        return command_error_embed('help', "Error: Invalid Usage", f"The command `{command}` does not exist.")
+    info = utilities.command_info_str(command.lower())
 
     embed = disnake.Embed(
         color=disnake.Color.green(),

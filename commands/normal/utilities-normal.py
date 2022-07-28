@@ -2,7 +2,7 @@ import disnake
 from disnake.ext import commands
 from disnake.ext.commands import Context
 
-from helpers import embeds, checks, utilities
+from helpers import embeds, utilities
 
 
 class Utilities(commands.Cog, name="utilities-normal", description=":star: This is the essential commands that give "
@@ -37,27 +37,20 @@ class Utilities(commands.Cog, name="utilities-normal", description=":star: This 
     )
     async def help(self, ctx: Context, option_view: str = None, item_view: str = None) -> None:
         if option_view is None:
-            await ctx.send(embed=embeds.help_embed_categories(self.bot.cogs))
+            await ctx.send(embed=embeds.help_embed_categories())
             return
 
         if option_view.lower() == "category":
-            await ctx.send(embed=embeds.help_embed_category(self.bot.cogs, item_view))
+            await ctx.send(embed=embeds.help_embed_category(item_view))
             return
 
         if option_view.lower() == "command":
-            await ctx.send(embed=embeds.help_embed_command(self.bot.cogs, item_view))
+            await ctx.send(embed=embeds.help_embed_command(item_view))
             return
 
-        embed = disnake.Embed(
-            color=disnake.Color.red(),
-            description="**Usage: **`help [category|command] <category name | command name>`\n\n"
-                        f"PLease select a valid option: `category` or `command`."
-        )
-        embed.set_author(name="Help: Error")
-
-        await ctx.send(embed=embed)
-
-
+        error = embeds.command_error_embed('help', 'Invalid option!',
+                                           "Please select a valid option `category` or `command`.")
+        await ctx.send(embed=error)
 
 
 def setup(bot):

@@ -1,5 +1,4 @@
 import time
-from typing import Any
 
 number_conversion = {
     0: "zero",
@@ -45,7 +44,10 @@ class _CachedItems:
 CachedItems = _CachedItems()
 
 
-def categories_description(cogs):
+def categories_description(cogs=None):
+    if cogs is None and CachedItems.get_categories_desc() is None:
+        return None
+
     if CachedItems.get_categories_desc() is not None:
         return CachedItems.get_categories_desc()
 
@@ -54,7 +56,10 @@ def categories_description(cogs):
     return items
 
 
-def command_info(cogs) -> dict:
+def command_info(cogs=None) -> dict | None:
+    if cogs is None and CachedItems.get_command_info() is None:
+        return None
+
     if CachedItems.get_command_info() is not None:
         return CachedItems.get_command_info()
 
@@ -69,8 +74,19 @@ def command_info(cogs) -> dict:
     return items
 
 
-def command_info_str(command_name: str, cmd_info: dict) -> str:
-    info = f"**Command: **{command_name}"
+def command_info_dict(command_name: str) -> dict | None:
+    command_name = command_name.lower()
+
+    category = find_command_category(command_name)
+    info = CachedItems.get_command_info()[category][command_name]
+    info['category'] = category
+    info['name'] = command_name
+    return info
+
+
+def command_info_str(command_name: str) -> str | None:
+    cmd_info = command_info_dict(command_name)
+    info = f"**Command: **{cmd_info['name']}"
     info += f"\n**Description: **{cmd_info['description']}"
     info += f"\n**Usage: **`{cmd_info['usage']}`"
     if len(cmd_info['aliases']) > 0:
@@ -79,10 +95,24 @@ def command_info_str(command_name: str, cmd_info: dict) -> str:
     return info
 
 
-def find_command_category(command_name: str, cogs) -> str | None:
-    for cat in [x for x in list(cogs.keys()) if x.endswith("-normal")]:
-        category_commands = [cmd.name for cmd in cogs[cat].walk_commands()]
-
-        if command_name in category_commands:
-            return cat
+def find_command_category(command_name: str) -> str | None:
+    for category in CachedItems.get_command_info():
+        if command_name in CachedItems.get_command_info()[category]:
+            return category
     return None
+
+
+def command_usage_message(command_name: str) -> str | None:
+    cmd_info = command_info_dict(command_name)
+    if cmd_info is None:
+        return None
+    return f"**Usage: **`{cmd_info['usage']}`"
+
+
+def command_categories() -> list:
+    return list(CachedItems.get_command_info().keys())
+
+
+def load_cache(cogs):
+    CachedItems.set_command_info(command_info(cogs))
+    CachedItems.set_categories_desc(categories_description(cogs))
