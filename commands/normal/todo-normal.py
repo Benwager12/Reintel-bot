@@ -112,21 +112,19 @@ class Todo(commands.Cog, name="todo-normal", description=":notepad_spiral: This 
 
     @commands.command(
         name="remove",
-        description="Currently tested item",
+        description="Remove a todo from your list",
         usage="remove <item number>",
         aliases=["deletetodo", "tick"]
     )
     async def remove(self, ctx: Context, number: int = None) -> None:
         if number is None:
-            error = await ctx.reply(embed=embeds.error_embed("Provide number",
-                                                             "Please provide a number to remove a todo!"))
-            await error.delete(delay=5)
+            error = await ctx.reply(embed=embeds.command_error_embed(ctx.command.name, "Provide number",
+                                                                     "Please provide a number to remove a todo!"))
             return
 
         if number < 1:
-            error = await ctx.reply(embed=embeds.error_embed("Invalid number",
-                                                             "Please provide a number greater than 0!"))
-            await error.delete(delay=5)
+            error = await ctx.reply(embed=embeds.command_error_embed(ctx.command.name, "Invalid number",
+                                                                     "Please provide a number greater than 0!"))
             return
 
         items = queries.todo_items(ctx.author.id, ctx.guild.id)

@@ -21,7 +21,7 @@ def error_embed(title: str, message: str) -> disnake.Embed:
 
 
 def command_error_embed(command: str, title: str, message: str) -> disnake.Embed:
-    return error_embed(title, f"**Usage: **`{utilities.command_usage_message(command)}`\n\n{message}")
+    return error_embed(title, f"{utilities.command_usage_message(command)}\n\n{message}")
 
 
 def todo_embed(items: list, author: Member, description: str = None, crossed: int = None) -> \
@@ -119,10 +119,9 @@ def help_embed_command(command: str) -> disnake.Embed:
     if command is None:
         return command_error_embed('help', "Error: Invalid Usage", "Please specify a command.")
 
-    category = utilities.find_command_category(command.lower())
-
-    if category is None:
+    if not utilities.command_exists(command):
         return command_error_embed('help', "Error: Invalid Usage", f"The command `{command}` does not exist.")
+
     info = utilities.command_info_str(command.lower())
 
     embed = disnake.Embed(

@@ -113,6 +113,10 @@ def command_categories() -> list:
     return list(CachedItems.get_command_info().keys())
 
 
+def command_exists(command_name: str) -> bool:
+    return find_command_category(command_name) is not None
+
+
 def load_cache(cogs):
     CachedItems.set_command_info(command_info(cogs))
     CachedItems.set_categories_desc(categories_description(cogs))

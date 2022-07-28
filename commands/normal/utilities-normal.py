@@ -2,7 +2,7 @@ import disnake
 from disnake.ext import commands
 from disnake.ext.commands import Context
 
-from helpers import embeds, utilities
+from helpers import embeds, checks
 
 
 class Utilities(commands.Cog, name="utilities-normal", description=":star: This is the essential commands that give "
@@ -33,7 +33,7 @@ class Utilities(commands.Cog, name="utilities-normal", description=":star: This 
         name="help",
         description="Get help about a command!",
         aliases=["commands"],
-        usage="help [category|command] <category name | command name>"
+        usage="help <category|command> <category name | command name>"
     )
     async def help(self, ctx: Context, option_view: str = None, item_view: str = None) -> None:
         if option_view is None:
@@ -48,9 +48,18 @@ class Utilities(commands.Cog, name="utilities-normal", description=":star: This 
             await ctx.send(embed=embeds.help_embed_command(item_view))
             return
 
-        error = embeds.command_error_embed('help', 'Invalid option!',
+        error = embeds.command_error_embed(ctx.command.name, 'Invalid option!',
                                            "Please select a valid option `category` or `command`.")
         await ctx.send(embed=error)
+
+    @commands.command(
+        name="test",
+        description="Test command!",
+        usage="Unknown"
+    )
+    @checks.is_owner()
+    async def test(self, ctx: Context) -> None:
+        await ctx.send(ctx.command.name)
 
 
 def setup(bot):
