@@ -2,7 +2,7 @@ import disnake
 from disnake.ext import commands
 from disnake.ext.commands import Context
 
-from helpers import embeds, checks
+from helpers import embeds, checks, queries
 
 
 class Utilities(commands.Cog, name="utilities-normal", description=":star: This is the essential commands that give "
@@ -58,8 +58,10 @@ class Utilities(commands.Cog, name="utilities-normal", description=":star: This 
         usage="Unknown"
     )
     @checks.is_owner()
-    async def test(self, ctx: Context) -> None:
-        await ctx.send(ctx.command.name)
+    async def test(self, ctx: Context, message_id: int) -> None:
+        is_react = queries.get_react_message(message_id, ctx.guild.id) is not None
+        await ctx.reply(f"The message `{message_id}` in guild `{ctx.guild.id}` is {'' if is_react else 'not '}"
+                        f"a reactionary message")
 
 
 def setup(bot):

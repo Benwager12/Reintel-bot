@@ -98,10 +98,10 @@ def help_embed_categories() -> disnake.Embed:
 
 def help_embed_category(category: str) -> disnake.Embed:
     if category is None:
-        return command_error_embed('help', "Error: Invalid Usage", "Please specify a category.")
+        return command_error_embed('help', "Invalid Usage", "Please specify a category.")
 
     if f"{category.lower()}-normal" not in utilities.command_categories():
-        return command_error_embed('help', "Error: Invalid Usage", f"The category `{category}` does not exist.")
+        return command_error_embed('help', "Invalid Usage", f"The category `{category}` does not exist.")
 
     commands = utilities.command_info()[f"{category.lower()}-normal"]
     description = "\n\n".join(utilities.command_info_str(command) for command in commands)
@@ -117,10 +117,10 @@ def help_embed_category(category: str) -> disnake.Embed:
 
 def help_embed_command(command: str) -> disnake.Embed:
     if command is None:
-        return command_error_embed('help', "Error: Invalid Usage", "Please specify a command.")
+        return command_error_embed('help', "Invalid Usage", "Please specify a command.")
 
     if not utilities.command_exists(command):
-        return command_error_embed('help', "Error: Invalid Usage", f"The command `{command}` does not exist.")
+        return command_error_embed('help', "Invalid Usage", f"The command `{command}` does not exist.")
 
     info = utilities.command_info_str(command.lower())
 

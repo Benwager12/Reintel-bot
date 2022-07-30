@@ -5,17 +5,20 @@ Thank you very much for the great bot template!
 
 
 import disnake
+import emoji.core
 from disnake.ext.commands import Bot
 from disnake import ApplicationCommandInteraction
 from disnake.ext import tasks, commands
-from helpers import utilities
+from helpers import utilities, queries
 from helpers import config
 
 import os
 import exceptions
+from helpers.utilities import role_from_reaction
 
 intents = disnake.Intents.default()
 intents.message_content = True
+intents.reactions = True
 
 bot = Bot(
     command_prefix=commands.when_mentioned_or(config.config["PREFIX"]),
@@ -40,6 +43,16 @@ async def on_ready():
     
     presence = "with lists." if config.is_prod else "with code."
     await bot.change_presence(activity=disnake.Game(name=presence))
+
+
+@bot.event
+async def on_raw_reaction_add(payload: disnake.RawReactionActionEvent) -> None:
+    await role_from_reaction(payload, bot)
+
+
+@bot.event
+async def on_raw_reaction_remove(payload: disnake.RawReactionActionEvent) -> None:
+    await role_from_reaction(payload, bot)
 
 
 @tasks.loop(seconds=5)
@@ -78,8 +91,7 @@ async def on_slash_command_error(interaction: ApplicationCommandInteraction, err
         embed = disnake.Embed(
             title="Error!",
             description="You are blacklisted from using the bot.",
-            color=0xE02B2B,
-            hidden=True
+            color=0xE02B2B
         )
         print("A blacklisted user tried to execute a command.")
         return await interaction.send(embed=embed, ephemeral=True)
@@ -88,8 +100,7 @@ async def on_slash_command_error(interaction: ApplicationCommandInteraction, err
             title="Error!",
             description="You are missing the permission(s) `" + ", ".join(
                 error.missing_permissions) + "` to execute this command!",
-            color=0xE02B2B,
-            hidden=True
+            color=0xE02B2B
         )
         print("A blacklisted user tried to execute a command.")
         return await interaction.send(embed=embed, ephemeral=True)

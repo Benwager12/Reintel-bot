@@ -1,5 +1,9 @@
 import time
 
+import emoji
+
+from helpers import queries
+
 number_conversion = {
     0: "zero",
     1: "one",
@@ -120,3 +124,41 @@ def command_exists(command_name: str) -> bool:
 def load_cache(cogs):
     CachedItems.set_command_info(command_info(cogs))
     CachedItems.set_categories_desc(categories_description(cogs))
+
+
+async def role_from_reaction(payload, bot):
+    if payload.user_id == bot.user.id:
+        return
+
+    channel = await bot.fetch_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+
+    for reaction in message.reactions:
+        if reaction.emoji == payload.emoji:
+            users = await reaction.users().flatten()
+            print(users)
+
+    react_message = queries.get_react_message(message.id, payload.guild_id)
+
+    if react_message is None:
+        return
+
+    react_emoji = str(payload.emoji)
+    if not emoji.is_emoji(str(react_emoji)):
+        react_emoji = react_emoji.id
+
+    react_role_id = queries.get_react_role(message.id, payload.user_id, payload.guild_id, react_emoji)
+
+    if react_role_id is None:
+        return
+
+    guild = await bot.fetch_guild(payload.guild_id)
+    role = guild.get_role(react_role_id)
+
+    print(payload.event_type)
+
+    if payload.event_type == "REACTION_ADD":
+        await payload.member.add_roles(role)
+    elif payload.event_type == "REACTION_REMOVE":
+        member = await guild.fetch_member(payload.user_id)
+        await member.remove_roles(role)
