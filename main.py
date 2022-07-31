@@ -61,7 +61,7 @@ async def check_timers():
 
 
 def load_commands() -> None:
-    for ctype in ["normal", "slash"]:
+    for ctype in ["normal"]:
         for file in os.listdir(f"./commands/{ctype}"):
             if file.endswith(".py"):
                 bot.load_extension(f"commands.{ctype}.{file[:-3]}")
