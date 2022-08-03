@@ -133,19 +133,24 @@ async def role_from_reaction(payload, bot):
     channel = await bot.fetch_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
 
-    for reaction in message.reactions:
-        if reaction.emoji == payload.emoji:
-            users = await reaction.users().flatten()
-            print(users)
-
     react_message = queries.get_react_message(message.id, payload.guild_id)
 
     if react_message is None:
         return
 
+    for reaction in message.reactions:
+        if str(payload.emoji) == str(reaction.emoji):
+            users = await reaction.users().flatten()
+            user_ids = [user.id for user in users]
+
+            has_bot = bot.user.id in user_ids
+            if not has_bot:
+                return
+
     react_emoji = str(payload.emoji)
-    if not emoji.is_emoji(str(react_emoji)):
-        react_emoji = react_emoji.id
+
+    if not emoji.is_emoji(react_emoji):
+        react_emoji = react_emoji[6:-1]
 
     react_role_id = queries.get_react_role(message.id, payload.user_id, payload.guild_id, react_emoji)
 
@@ -154,8 +159,6 @@ async def role_from_reaction(payload, bot):
 
     guild = await bot.fetch_guild(payload.guild_id)
     role = guild.get_role(react_role_id)
-
-    print(payload.event_type)
 
     if payload.event_type == "REACTION_ADD":
         await payload.member.add_roles(role)

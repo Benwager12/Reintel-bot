@@ -73,16 +73,23 @@ class Reactionary(commands.Cog, name="reactionary-normal", description=":arrow_u
                                                             "Please provide a role!"))
             return
 
-        print(ctx.guild.owner_id)
-        if ctx.author.top_role.position < role.position and ctx.author.id != ctx.guild.owner_id:
+        if ctx.author.top_role.position <= role.position and ctx.author.id != ctx.guild.owner_id:
             await ctx.send(embed=embeds.command_error_embed(ctx.command.name, "No permission",
                                                             "That role is higher than yours in the hierarchy."))
             return
 
-        if not emoji_unicode:
-            reaction_emoji = reaction_emoji.group(2)
+        bot_user = ctx.guild.get_member(self.bot.user.id)
+        if bot_user.top_role.position <= role.position:
+            await ctx.send(embed=embeds.command_error_embed(ctx.command.name, "No permission",
+                                                            "That role is higher than the bot's in the hierarchy."))
+            return
 
-        queries.add_react(ctx.author.id, message_id, reaction_emoji, role.id, ctx.guild.id)
+        emoji_id = reaction_emoji
+        if not emoji_unicode:
+            emoji_id = f"{reaction_emoji.group(2)}"
+            reaction_emoji = f"<:emoji:{emoji_id}>"
+
+        queries.add_react(ctx.author.id, message_id, emoji_id, role.id, ctx.guild.id)
         await message.add_reaction(reaction_emoji)
 
 

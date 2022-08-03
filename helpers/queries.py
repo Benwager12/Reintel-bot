@@ -260,8 +260,6 @@ def get_react_roles(message_id, user_id, guild_id) -> dict:
     if result is None:
         return None
 
-    print(result)
-
     emoji_ids = [x for x in result.split(',')]
 
     role_matches = dict()
@@ -270,13 +268,11 @@ def get_react_roles(message_id, user_id, guild_id) -> dict:
         query = "SELECT REACT_EMOJI, ROLE_ID FROM REACT_EMOJI_ROLE_MATCH " \
                 f"WHERE ID = {emoji_id};"
         try:
-            print(emoji_id)
             cursor.execute(query)
         except psycopg2.errors.InFailedSqlTransaction:
             print(f"Failed to execute query:\n{query}")
 
         item = cursor.fetchone()
-        print(item)
 
         role_matches[item[0]] = item[1]
     cursor.close()
@@ -294,3 +290,54 @@ def get_react_role(message_id, user_id, guild_id, react_emoji):
     :return: The role that is given to a user when a reaction is added.
     """
     return get_react_roles(message_id, user_id, guild_id)[react_emoji]
+
+
+def delete_reactionary(message_id, guild_id) -> list:
+    """
+    Deletes a reactionary.
+    :param message_id: The message id to delete.
+    :param guild_id: The guild id to delete.
+    """
+    check_db_connection()
+
+    cursor = database.connection.cursor()
+
+    query = "DELETE FROM REACTIONARIES " \
+            "WHERE MESSAGE_ID = %s AND SERVER_ID = %s RETURNING REACT_EMOJI_LINKS;"
+
+    try:
+        cursor.execute(query, (message_id, guild_id))
+    except psycopg2.errors.InFailedSqlTransaction:
+        print(f"Failed to execute query:\n{query}")
+
+    emoji_links = cursor.fetchone()[0]
+
+    database.connection.commit()
+    cursor.close()
+
+    return [int(x) for x in emoji_links.split(',')]
+
+
+def delete_emojis(ids: list):
+    """
+    Deletes emojis from the database.
+    :param ids: The ids of the emojis to delete.
+    """
+    if len(ids) == 0:
+        return
+
+    check_db_connection()
+
+    cursor = database.connection.cursor()
+
+    connected_ids = " OR ".join([f"ID = {id}" for id in ids])
+    query = "DELETE FROM REACT_EMOJI_ROLE_MATCH " \
+            f"WHERE {connected_ids};"
+
+    try:
+        cursor.execute(query)
+    except psycopg2.errors.InFailedSqlTransaction:
+        print(f"Failed to execute query:\n{query}")
+
+    database.connection.commit()
+    cursor.close()

@@ -14,11 +14,12 @@ from helpers import config
 
 import os
 import exceptions
-from helpers.utilities import role_from_reaction
 
 intents = disnake.Intents.default()
 intents.message_content = True
 intents.reactions = True
+intents.messages = True
+
 
 bot = Bot(
     command_prefix=commands.when_mentioned_or(config.config["PREFIX"]),
@@ -47,12 +48,18 @@ async def on_ready():
 
 @bot.event
 async def on_raw_reaction_add(payload: disnake.RawReactionActionEvent) -> None:
-    await role_from_reaction(payload, bot)
+    await utilities.role_from_reaction(payload, bot)
 
 
 @bot.event
 async def on_raw_reaction_remove(payload: disnake.RawReactionActionEvent) -> None:
-    await role_from_reaction(payload, bot)
+    await utilities.role_from_reaction(payload, bot)
+
+
+@bot.event
+async def on_raw_message_delete(payload: disnake.RawMessageDeleteEvent) -> None:
+    emojis = queries.delete_reactionary(payload.message_id, payload.guild_id)
+    queries.delete_emojis(emojis)
 
 
 @tasks.loop(seconds=5)
